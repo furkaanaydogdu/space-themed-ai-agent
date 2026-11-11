@@ -1,0 +1,62 @@
+# App repo: React frontend (frontend/) and Python backend (backend/)
+
+# Secrets and local configuration (never commit)
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+service-account*.json
+*-credentials.json
+.secrets/
+*.token
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+build/
+dist/
+
+# Editors and operating systems
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Local AI-tool settings (personal, not shared)
+.claude/settings.local.json
+CLAUDE.local.md
+
+# Logs and scratch
+*.log
+tmp/
+.tmp/
+
+# Node and frontend build output (dist/ above also covers frontend/dist/)
+node_modules/
+.vite/
+coverage/
+*.tsbuildinfo
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# UI board screenshots are local only (see docs/ui/README.md)
+docs/ui/**/*.png
+docs/ui/**/*.jpg
+docs/ui/**/*.jpeg
+docs/ui/**/*.webp
+docs/ui/**/*.gif
