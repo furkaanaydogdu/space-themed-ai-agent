@@ -1,6 +1,6 @@
 # ADR 0003: A stateless agent that answers each question on its own
 
-- Status: Accepted
+- Status: Accepted; the Show more mechanism is superseded by [ADR 0013](0013-show-more-by-reserved-ids.md)
 - Date: 2026-10 (Show more round trip refined 2026-11-01)
 - Repo: app
 - Related: [ADR 0010](0010-conversation-held-in-the-browser.md), [ADR 0011](0011-one-api-contract-with-generated-types.md)

@@ -1,6 +1,6 @@
 # ADR 0011: One API contract definition, with generated frontend types
 
-- Status: Accepted
+- Status: Accepted; the Show more request and the `show_more_query` field are superseded by [ADR 0013](0013-show-more-by-reserved-ids.md)
 - Date: 2026-11-01
 - Repo: app
 - Related: [ADR 0003](0003-stateless-agent-each-question-alone.md), [ADR 0009](0009-react-and-python-api-in-one-container.md), [MCP ADR 0003](../../mcp/adr/0003-tools-return-data-only.md)

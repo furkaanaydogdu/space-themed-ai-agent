@@ -21,7 +21,7 @@ Status: written 2026-11-01 from the architecture working notes. Product scope li
 ## 2. Constraints
 
 - No user accounts, no cookies for conversation loading, no database ([ADR 0006](app/adr/0006-no-database.md)).
-- Each question is answered on its own; the only continuation is "Show more" on archive results ([ADR 0003](app/adr/0003-stateless-agent-each-question-alone.md)).
+- Each question is answered on its own; the only continuation is "Show more" on archive results ([ADR 0003](app/adr/0003-stateless-agent-each-question-alone.md), [ADR 0013](app/adr/0013-show-more-by-reserved-ids.md)).
 - The interface must work at phone width.
 - The archive index lives in a private repository and is baked only into a private image.
 - Hosting: Google Cloud Run in europe-west4, scale to zero, one environment.
@@ -72,7 +72,7 @@ flowchart TB
             be["Python API + agent<br/>(FastAPI, LangGraph)"]
         end
         subgraph mcpsvc["MCP service (Cloud Run, private)"]
-            tools["MCP tools<br/>archive search, asteroids, ISS"]
+            tools["MCP tools<br/>archive search and lookup, asteroids, ISS"]
             idx[("Index + model<br/>baked in")]
         end
         reg[("Artifact Registry<br/>2 images")]
@@ -104,7 +104,7 @@ flowchart TB
 |---|---|---|
 | Frontend (`frontend/` in app repo) | Conversation, landing, About, answer overlay, history entries, illustrations drawn from data, saved browser state | [App components](app/c4-components.md) |
 | Backend (`backend/` in app repo) | API, agent graph, validation, audit log line, serving the built frontend | [App components](app/c4-components.md) |
-| MCP service (MCP repo) | Three data tools, in-memory index, embedding model | [MCP components](mcp/c4-components.md) |
+| MCP service (MCP repo) | Four data tools (archive search, archive lookup, asteroids, ISS), in-memory index, embedding model | [MCP components](mcp/c4-components.md) |
 | Index pipeline (index repo) | Build, validate and publish the index release | [Index components](index/c4-components.md) |
 
 ## 6. Runtime view
@@ -130,14 +130,14 @@ sequenceDiagram
     G->>L: compose (mid-tier model)
     L-->>G: overview + explanations
     Note over G: validate levels 1-3 (one retry, then code-built cards)
-    G-->>A: answer (text, entries, show_more_query)
+    G-->>A: answer (text, entries, more_ids)
     A-->>B: response, audit line written
-    Note over B: overlay opens only when the answer is ready; state saved in sessionStorage
+    Note over B: overlay opens only when the answer is ready, state saved in sessionStorage
 ```
 
 ### Other flows
 
-- **Show more.** The browser sends the exact `show_more_query` it received and the ids of all archive entries it holds. The agent skips decide: search with exclusions, compose, validate. New entries come back in the same `entries` field ([ADR 0003](app/adr/0003-stateless-agent-each-question-alone.md), [ADR 0011](app/adr/0011-one-api-contract-with-generated-types.md)).
+- **Show more.** The first archive search keeps more entries than it shows and the answer carries the ids of the reserved ones in `more_ids`. The browser sends the next ids, at most 3. The agent skips decide: lookup by id, compose, validate. New entries come back in the same `entries` field ([ADR 0013](app/adr/0013-show-more-by-reserved-ids.md), [MCP ADR 0004](mcp/adr/0004-archive-search-and-lookup-by-id.md)).
 - **Decline.** Out-of-scope or "relies on earlier answer" questions get an agent-written message, checked by a guard, with a fixed fallback. No overlay opens.
 - **Landing.** The page calls a warm-up endpoint so the MCP service wakes while the visitor reads.
 - **Refresh or expired sign-in.** The page reloads, passes the quick Google sign-in if needed, restores the saved conversation, and puts an unanswered question back in the input ([ADR 0010](app/adr/0010-conversation-held-in-the-browser.md)).
@@ -168,7 +168,7 @@ Numbered in the order decided, per repo; never renumbered. A superseded decision
 |---|---|---|---|
 | app | [0001](app/adr/0001-three-repos-two-services.md) | Three repositories, two services | Structure |
 | app | [0002](app/adr/0002-langgraph-skeleton-with-plain-python-nodes.md) | LangGraph skeleton with plain Python nodes | Agent |
-| app | [0003](app/adr/0003-stateless-agent-each-question-alone.md) | Stateless agent; each question alone; Show more through the query round trip | Agent |
+| app | [0003](app/adr/0003-stateless-agent-each-question-alone.md) | Stateless agent; each question alone (Show more part superseded by 0013) | Agent |
 | app | [0004](app/adr/0004-code-owns-facts-model-owns-words.md) | Code owns facts, the model owns words | Agent |
 | app | [0005](app/adr/0005-evals-on-demand-with-an-independent-judge.md) | Evals on demand with an independent judge | Quality |
 | app | [0006](app/adr/0006-no-database.md) | No database | Structure |
@@ -176,11 +176,13 @@ Numbered in the order decided, per repo; never renumbered. A superseded decision
 | app | [0008](app/adr/0008-registry-login-and-deploy-flow.md) | Artifact Registry, Workload Identity Federation, deploy on merge | Delivery |
 | app | [0009](app/adr/0009-react-and-python-api-in-one-container.md) | React and Python API in one container (supersedes Streamlit) | Frontend |
 | app | [0010](app/adr/0010-conversation-held-in-the-browser.md) | Conversation held in the browser | Frontend |
-| app | [0011](app/adr/0011-one-api-contract-with-generated-types.md) | One API contract, generated types | Frontend |
+| app | [0011](app/adr/0011-one-api-contract-with-generated-types.md) | One API contract, generated types (Show more fields superseded by 0013) | Frontend |
 | app | [0012](app/adr/0012-bounded-loops-deadline-and-cost-guards.md) | Bounded loops, deadline, cost guards | Safety and cost |
+| app | [0013](app/adr/0013-show-more-by-reserved-ids.md) | Show more fetches reserved entries by id | Agent |
 | mcp | [0001](mcp/adr/0001-http-mcp-server-on-a-private-link.md) | HTTP MCP server on a private link | Hosting |
 | mcp | [0002](mcp/adr/0002-index-and-model-baked-into-image.md) | Index and model baked into the image | Delivery |
-| mcp | [0003](mcp/adr/0003-tools-return-data-only.md) | Tools return data only | Agent |
+| mcp | [0003](mcp/adr/0003-tools-return-data-only.md) | Tools return data only (exclusion list and extra-result rule superseded by 0004) | Agent |
+| mcp | [0004](mcp/adr/0004-archive-search-and-lookup-by-id.md) | Archive search returns a ranked list; lookup tool by id | Agent |
 | index | [0001](index/adr/0001-private-index-repo-with-manifest-and-release.md) | Private index repo, manifest, validated release | Delivery |
 | index | [0002](index/adr/0002-multi-qa-minilm-embedding-model.md) | Embedding model `multi-qa-MiniLM-L6-cos-v1` | Retrieval |
 | index | [0003](index/adr/0003-chunk-only-long-entries.md) | Split only long entries into overlapping chunks | Retrieval |
@@ -209,7 +211,7 @@ Numbered in the order decided, per repo; never renumbered. A superseded decision
 - Where eval results are stored without a database, how they are shown, and what protects that view.
 - The ISS illustration specification; asteroid illustration details found in the spike (tick omission rule, label truncation, overlap guarantee, panel clipping).
 - Per-node model assignment (starts as a small model for decide and a mid-tier model for compose; the evals tune it).
-- The relevance cut-off that decides when more archive matches exist.
+- The relevance cut-off that decides which archive matches are kept, and the number of entries held in reserve for Show more.
 - Whether the archive explanation text is fetched live instead of baked into the index.
 - Model SDK timeout and retry options; provider billing behaviour on dropped requests.
 - Image size and build time of the MCP image; re-measured cold starts with the real app; a real phone and Safari check.

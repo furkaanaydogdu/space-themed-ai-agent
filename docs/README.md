@@ -5,7 +5,7 @@ Design and decision documents for "Discover the Cosmos", a space-themed AI agent
 | Folder | What is in it |
 |---|---|
 | [`architecture/space-agent-architecture.md`](architecture/space-agent-architecture.md) | The architecture overview (goals, building blocks, runtime, deployment, decisions index). Start here. |
-| [`architecture/app/`](architecture/app/) | Components view and decision records (ADRs 0001–0012) for this repo. |
+| [`architecture/app/`](architecture/app/) | Components view and decision records (ADRs 0001–0013) for this repo. |
 | [`architecture/mcp/`](architecture/mcp/) | Components view and ADRs for the MCP server repo. Kept here because the decisions span repos. |
 | [`architecture/index/`](architecture/index/) | Components view and ADR for the (private) index repo. |
 | [`ui/`](ui/README.md) | One specification per screen, plus shared conventions. |

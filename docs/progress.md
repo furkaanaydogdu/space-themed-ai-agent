@@ -23,6 +23,7 @@ One checklist for all three repositories. Tick a step only after it is merged an
 
 - [ ] 2.1 Server skeleton with a dummy tool
 - [ ] 2.2 Archive search tool
+- [ ] 2.2b Archive lookup tool
 - [ ] 2.3 Asteroid tool
 - [ ] 2.4 ISS tool
 - [ ] 2.5 Dockerfile and image build
