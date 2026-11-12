@@ -54,7 +54,7 @@ Run every check that applies to your change before saying a step is done, and re
 
 - No unbounded `while` loops.
 - No regex on long or untrusted text without a length cap; prefer plain string operations or validation libraries.
-- Length caps on the question (300 characters), on model output and on the shown-ids list.
+- Length caps on the question (300 characters), on model output and on the Show more id list: at most 3 ids, each in the plain id format, otherwise a bad request.
 - Every MCP and model call has a timeout equal to the smaller of its own limit and the time left before the request deadline. Retries are bounded and count against the deadline.
 - Loop limits come from config (`MAX_ROUNDS`, `MAX_COMPOSE_RETURNS`), plus an explicit LangGraph step limit. No repeated identical tool call; only tools the MCP server lists.
 
@@ -62,7 +62,8 @@ Run every check that applies to your change before saying a step is done, and re
 
 - **Code owns facts, the model owns words** (ADR 0004). Title, date, credit, link and distances are copied by code from tool results by entry id. The model writes only the overview and the explanations, and the output is validated.
 - **LangGraph is only the skeleton** (ADR 0002): nodes, edges and state. Node bodies are plain Python. LangChain chat-model wrappers appear only inside nodes. No LangChain agents, chains, retrievers or tool abstractions. Use the official MCP client library directly.
-- **Stateless agent** (ADR 0003): each question stands alone. Show more goes through the query round trip.
+- **Stateless agent** (ADR 0003): each question stands alone, and the server keeps no state about earlier answers.
+- **Show more fetches reserved entries by id** (ADR 0013, which replaced the query round trip of ADR 0003). The first archive answer shows up to 3 entries and returns `more_ids`, the ids of up to 6 reserved entries (ids only, no archive text). The browser keeps them. Show more sends the next ids, at most 3. The agent then skips `decide`, fetches those entries through the MCP lookup tool, and runs compose and validate as for any answer. In a Show more response `more_ids` is always empty. Incoming ids are untrusted input.
 - **No database** (ADR 0006). The conversation lives in the browser (ADR 0010).
 - **One API contract** (ADR 0011): request and response shapes are defined once as backend models; the OpenAPI file and the TypeScript types are generated from them. Never edit generated files by hand. The backend returns facts and words, never layouts; the browser draws the illustrations.
 - The app hosts no image copies; images load from their NASA address.
