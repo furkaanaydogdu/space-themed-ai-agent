@@ -6,8 +6,8 @@ One checklist for all three repositories. Tick a step only after it is merged an
 
 - [x] 0.1 Local folders and GitHub repositories
 - [x] 0.2 Documents placed in each repository
-- [ ] 0.3 Scaffold: tooling, ignore rules, README skeletons
-- [ ] 0.4 Agent instruction files, first decision record, corrections log
+- [x] 0.3 Scaffold: tooling, ignore rules, README skeletons
+- [x] 0.4 Agent instruction files, first decision record, corrections log
 - [ ] 0.5 Continuous integration per repository
 - [ ] 0.6 Pull request review workflow
 
