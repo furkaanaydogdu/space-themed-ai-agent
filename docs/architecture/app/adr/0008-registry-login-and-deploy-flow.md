@@ -1,6 +1,6 @@
 # ADR 0008: Artifact Registry, Workload Identity Federation and deploy-on-merge
 
-- Status: Accepted
+- Status: Accepted; the Review bullet is superseded by [ADR 0014](0014-keyless-pull-request-review.md)
 - Date: 2026-10-31
 - Repo: app (applies to the app and MCP repos)
 - Related: [MCP ADR 0002](../../mcp/adr/0002-index-and-model-baked-into-image.md), [ADR 0007](0007-access-gate-with-cloud-run-iap.md)
@@ -15,7 +15,7 @@ Images must be built, stored and deployed without long-lived cloud keys, and the
 - **Deploy:** the deploy job runs only on a merge or push to `main`, never on pull requests. The pipeline only swaps the image of the existing service. Ingress, VPC, IAP and DNS settings remain one-time cloud settings in a runbook. On a host switch only the deploy step changes.
 - **Rollback:** redeploy an earlier commit tag.
 - **CI on pull requests:** lint, types, deterministic tests (no model calls), secret scan and the image build. Evals are not part of CI.
-- **Review:** a separate review-only workflow (anthropics/claude-code-action) with read-only code access, run once after CI is green. It uses its own workspace and key with a spend limit, turn and time limits, and reads review rules from a separate file. Comments are resolved through "require conversation resolution" (a solo developer cannot approve their own pull request).
+- **Review:** a separate review-only workflow (anthropics/claude-code-action) with read-only code access, run once after CI is green. It uses its own workspace and key with a spend limit, turn and time limits, and reads review rules from a separate file. Comments are resolved through "require conversation resolution" (a solo developer cannot approve their own pull request). *Superseded by [ADR 0014](0014-keyless-pull-request-review.md): keyless login instead of a key, and the mechanics of the review job.*
 - **Commits:** the developer commits; the review workflow never commits.
 
 ## Alternatives considered
