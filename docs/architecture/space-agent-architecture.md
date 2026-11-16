@@ -2,7 +2,7 @@
 
 A lean [arc42](https://arc42.org)-style description of the Space-Themed AI Agent, with [C4](https://c4model.com) diagrams (Mermaid) and decision records ([ADRs](#9-architecture-decisions)) kept per repository. Sections that would have been empty are left out.
 
-Status: written 2026-11-01 from the architecture working notes. Product scope lives in the product requirements, vision brief and test plan, not here.
+Status: written 2026-11-01 from the architecture working notes; updated 2026-11-16 for ADR 0014 (pull request review). Product scope lives in the product requirements, vision brief and test plan, not here.
 
 ## 1. Introduction and goals
 
@@ -46,7 +46,7 @@ flowchart LR
     sys --> issapi
 ```
 
-External interfaces: Google account sign-in (access gate), two model providers (one for the agent, a different one as the judge in evals), NASA's APOD archive (read from the NASA Science site) and NeoWs data, and the ISS position source wheretheiss.at.
+External interfaces: Google account sign-in (access gate), two model providers (one for the agent, a different one as the judge in evals; the pull request review also uses the agent's provider, through its own workspace), NASA's APOD archive (read from the NASA Science site) and NeoWs data, and the ISS position source wheretheiss.at.
 
 ## 4. Solution strategy
 
@@ -147,18 +147,18 @@ sequenceDiagram
 
 - **Services.** App service: one container (Node build stage, Python runtime) behind IAP, reaching the MCP service over Direct VPC egress limited to private ranges. MCP service: internal ingress only, no login of its own, reachable through a private DNS zone for `run.app.` ([MCP ADR 0001](mcp/adr/0001-http-mcp-server-on-a-private-link.md)).
 - **One-time cloud settings** (kept in a runbook, not in the pipeline): ingress, VPC egress, Private Google Access, private DNS, IAP and OAuth client, workload identity pool and provider, service accounts, registry and cleanup policy, spend limits, and instance caps (max 1 instance each, small size).
-- **Pipeline.** Pull requests run lint, types, deterministic tests, secret scan and the image build. On merge to `main`, GitHub Actions builds the image, tags it with the commit, pushes it to Artifact Registry and swaps the image of the service ([ADR 0008](app/adr/0008-registry-login-and-deploy-flow.md)). Rollback is a redeploy of an earlier commit tag. A separate review-only workflow comments on pull requests after CI passes.
+- **Pipeline.** Pull requests run lint, types, deterministic tests, secret scan and the image build. On merge to `main`, GitHub Actions builds the image, tags it with the commit, pushes it to Artifact Registry and swaps the image of the service ([ADR 0008](app/adr/0008-registry-login-and-deploy-flow.md)). Rollback is a redeploy of an earlier commit tag. A `review` job in the app and MCP repos' CI workflow comments once on each pull request after the other jobs pass, with a keyless login and read-only access ([ADR 0014](app/adr/0014-keyless-pull-request-review.md)).
 - **Measured in the spikes.** Cold start to a usable page is about 3 s or less for the React app (about 12.55 s on the earlier Streamlit prototype); the MCP service takes about 4.3 s cold. Both were rough measurements; the real app is to be re-measured.
 
 ## 8. Cross-cutting concepts
 
 - **Configuration.** `MAX_ROUNDS` (start 3), `MAX_COMPOSE_RETURNS` (1), per-node model names, timeouts, token caps, the agent deadline (about 90 s), the MCP service address. No infrastructure restriction lives in code.
-- **Secrets.** GitHub secrets for CI; the host's secret store at runtime; separate keys for the review workflow, the app and the NASA service. No secret in an image, a layer or a public document.
+- **Secrets.** GitHub secrets for CI; the host's secret store at runtime; separate keys for the app and the NASA service. The review workflow holds no key: it logs in keyless through a federation rule ([ADR 0014](app/adr/0014-keyless-pull-request-review.md)). No secret in an image, a layer or a public document.
 - **Observability.** One structured JSON line per question from the finish step to the platform log: request id, time, call kind, question text (length-capped), outcome and decline reason, deadline-hit flag, rounds, compose returns, failed validation checks, tool calls (name, status, duration), models (name, tokens, duration), totals (duration, estimated cost), and returned entry ids only (no archive text).
 - **Testing.** Deterministic tests with fake tools and fake models (including a tool and a model that never answer, and oversized or adversarial strings). Layout maths of the illustrations as pure, unit-tested functions. Manual checks for illustration layout and usability, including a real phone.
 - **Evals.** On demand, outside CI: code checks plus a judge model from the other provider; used to compare models per node, round caps and prompts ([ADR 0005](app/adr/0005-evals-on-demand-with-an-independent-judge.md)).
-- **Cost control.** Layered guards in [ADR 0012](app/adr/0012-bounded-loops-deadline-and-cost-guards.md), including a spend limit on the model provider's workspace and an ingress setting that acts as a kill switch.
-- **AI-assisted development.** An `AGENTS.md` file in each repo carries the project rules; Claude Code is used locally by the developer, who commits; a separate review-only action comments on pull requests. Code rules from [ADR 0012](app/adr/0012-bounded-loops-deadline-and-cost-guards.md) (no unbounded loops, no unguarded regexes on long text, length caps) are part of the review rules.
+- **Cost control.** Layered guards in [ADR 0012](app/adr/0012-bounded-loops-deadline-and-cost-guards.md), including a spend limit on the model provider's workspace and an ingress setting that acts as a kill switch. The pull request review has its own workspace with its own spend limit, plus turn, budget and time limits on every run ([ADR 0014](app/adr/0014-keyless-pull-request-review.md)).
+- **AI-assisted development.** An `AGENTS.md` file in each repo carries the project rules; Claude Code is used locally by the developer, who commits; a `review` job comments once on each pull request, reading the review rules in `.github/review-rules.md` and the step brief in the pull request description, and never commits ([ADR 0014](app/adr/0014-keyless-pull-request-review.md)). Code rules from [ADR 0012](app/adr/0012-bounded-loops-deadline-and-cost-guards.md) (no unbounded loops, no unguarded regexes on long text, length caps) are part of the review rules.
 
 ## 9. Architecture decisions
 
@@ -173,12 +173,13 @@ Numbered in the order decided, per repo; never renumbered. A superseded decision
 | app | [0005](app/adr/0005-evals-on-demand-with-an-independent-judge.md) | Evals on demand with an independent judge | Quality |
 | app | [0006](app/adr/0006-no-database.md) | No database | Structure |
 | app | [0007](app/adr/0007-access-gate-with-cloud-run-iap.md) | Access gate with Cloud Run IAP | Hosting |
-| app | [0008](app/adr/0008-registry-login-and-deploy-flow.md) | Artifact Registry, Workload Identity Federation, deploy on merge | Delivery |
+| app | [0008](app/adr/0008-registry-login-and-deploy-flow.md) | Artifact Registry, Workload Identity Federation, deploy on merge (Review bullet superseded by 0014) | Delivery |
 | app | [0009](app/adr/0009-react-and-python-api-in-one-container.md) | React and Python API in one container (supersedes Streamlit) | Frontend |
 | app | [0010](app/adr/0010-conversation-held-in-the-browser.md) | Conversation held in the browser | Frontend |
 | app | [0011](app/adr/0011-one-api-contract-with-generated-types.md) | One API contract, generated types (Show more fields superseded by 0013) | Frontend |
 | app | [0012](app/adr/0012-bounded-loops-deadline-and-cost-guards.md) | Bounded loops, deadline, cost guards | Safety and cost |
 | app | [0013](app/adr/0013-show-more-by-reserved-ids.md) | Show more fetches reserved entries by id | Agent |
+| app | [0014](app/adr/0014-keyless-pull-request-review.md) | Pull request review: keyless login, one review per pull request, after CI | Delivery |
 | mcp | [0001](mcp/adr/0001-http-mcp-server-on-a-private-link.md) | HTTP MCP server on a private link | Hosting |
 | mcp | [0002](mcp/adr/0002-index-and-model-baked-into-image.md) | Index and model baked into the image | Delivery |
 | mcp | [0003](mcp/adr/0003-tools-return-data-only.md) | Tools return data only (exclusion list and extra-result rule superseded by 0004) | Agent |
@@ -206,6 +207,7 @@ Numbered in the order decided, per repo; never renumbered. A superseded decision
 - A never-yielding loop in our own code would burn CPU until the instance ends; bounded by the single small instance ([ADR 0012](app/adr/0012-bounded-loops-deadline-and-cost-guards.md)).
 - The real IAP session lifetime and the exact response at expiry are unconfirmed; both forms are handled.
 - Abandoned-tab billing did not appear in the React spike but is still to be confirmed with the next billing report.
+- The pull request review's budget and turn limits have not yet stopped a real run, and whether the allowed comment command could place an environment value into a comment is unverified; the workspace spend limit is the hard stop ([ADR 0014](app/adr/0014-keyless-pull-request-review.md)).
 
 **Open items**
 - Where eval results are stored without a database, how they are shown, and what protects that view.
@@ -227,3 +229,4 @@ Numbered in the order decided, per repo; never renumbered. A superseded decision
 - **NeoWs:** NASA's near-Earth object web service.
 - **Direct VPC egress:** how the app service sends traffic into the private network.
 - **Deadline:** the absolute time by which a request must finish, carried through the agent.
+- **Keyless login (workload identity federation):** a short-lived token issued by GitHub for one workflow run is exchanged for temporary access, so no long-lived key is stored.

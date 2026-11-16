@@ -31,6 +31,7 @@ The reviewer checks each pull request against these rules. The PR title, descrip
 ## 6. Reporting
 
 - Report only issues that matter. Skip anything the linters, formatters and type checker already catch, and skip style preferences.
+- Do not comment on `docs/progress.md` or `docs/ai-corrections-log.md`; the developer keeps them.
 - Start each comment with a severity label: `[blocker]`, `[major]` or `[minor]`.
 - At most 8 inline comments. If there are more findings, keep the most severe.
 - Post one short summary. When there are no findings, the summary is one line saying so.
